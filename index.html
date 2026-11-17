@@ -1,13 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Sistema de Presença Escolar</title>
-
 
     <style>
         body {
@@ -23,16 +20,32 @@
 
         button {
             background-color: #2563eb;
-            color: white;
+            color: #ffffff;
             padding: 12px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             margin: 10px;
         }
+
+        form label,
+        form input {
+            display: block;
+            margin: 6px auto;
+        }
+
+        input {
+            padding: 8px;
+            width: 250px;
+        }
+
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #ffffff;
+        }
     </style>
 </head>
-
 
 <body>
 
@@ -40,183 +53,263 @@
 
     <p>Bem-vindo ao sistema de controle de presença.</p>
 
-    <button onclick="mostrarCadastro()">
-        Cadastrar Aluno
-    </button>
-<button onclick="mostrarAlunos()">
-    Alunos Cadastrados
-</button>
-<div id="listaAlunos" style="display: none;">
+    <button onclick="mostrarCadastro()">Cadastrar Aluno</button>
+    <button onclick="mostrarAlunos()">Alunos Cadastrados</button>
+    <button onclick="mostrarPresencas()">Registrar Presenças</button>
 
-    <h2>Alunos Cadastrados</h2>
-
-    <ul id="alunos"></ul>
-
-</div>
-    <button onclick="alert('Em desenvolvimento!')">
-        Registrar Presença
-    </button>
-
-    <button onclick="alert('Em desenvolvimento!')">
-        Consultar Presenças
-    </button>
-
-    <div id="cadastro" style="display: none; margin-top: 30px;">
-
-        <h2>Cadastro de Aluno</h2>
-
+    <div id="cadastro" style="display: none;">
+        <h2>Cadastrar Aluno</h2>
         <form onsubmit="salvarAluno(event)">
-
-            <p>Nome completo:</p>
+            <label for="nome">Nome do aluno:</label>
             <input type="text" id="nome" required>
 
-            <p>Matrícula:</p>
+            <label for="matricula">Matrícula:</label>
             <input type="text" id="matricula" required>
 
-            
-<p>Turma:</p>
-<select id="turma" required>
-    <option value="">Selecione a turma</option>
-    <option value="1º Ano A">1º Ano A</option>
-    <option value="1º Ano B">1º Ano B</option>
-    <option value="2º Ano A">2º Ano A</option>
-    <option value="2º Ano B">2º Ano B</option>
-    <option value="3º Ano A">3º Ano A</option>
-    <option value="3º Ano B">3º Ano B</option>
-</select>
-
-
-            <br><br>
+            <label for="turma">Turma:</label>
+            <input type="text" id="turma" required>
 
             <button type="submit">Salvar Aluno</button>
-
         </form>
-
         <p id="mensagem"></p>
-
     </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>
+    <div id="listaAlunos" style="display: none;">
+        <h2>Alunos Cadastrados</h2>
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Nº da matrícula</th>
+                    <th>Turma</th>
+                    <th>QR Code</th>
+                </tr>
+            </thead>
+            <tbody id="alunos"></tbody>
+        </table>
+    </div>
 
+    <div id="areaPresencas" style="display: none;">
+        <h2>Registro de Presença</h2>
 
-        
+        <label for="matriculaPresenca">Número da matrícula:</label>
+        <input type="text" id="matriculaPresenca" placeholder="Digite a matrícula do aluno">
 
-function mostrarCadastro() {
-    
-}
+        <button onclick="registrarPresenca()">Confirmar Presença</button>
 
-function salvarAluno(event) {
-    // código existente
-}
+        <p id="mensagemPresenca"></p>
 
+        <h3>Presenças Registradas</h3>
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Matrícula</th>
+                    <th>Turma</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                </tr>
+            </thead>
+            <tbody id="listaPresencas"></tbody>
+        </table>
+    </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // ---------- Funções que leem/gravam os dados ----------
+        // Hoje os dados ficam no localStorage (no navegador).
+        // Se um dia trocar para um banco de dados, só estas 4 funções mudam.
 
-function mostrarCadastro() {
-    // código existente
-}
+        function lerAlunos() {
+            return JSON.parse(localStorage.getItem("alunos")) || [];
+        }
 
-function salvarAluno(event) {
-    // código existente
-}
+        function gravarAlunos(alunos) {
+            localStorage.setItem("alunos", JSON.stringify(alunos));
+        }
 
+        function lerPresencas() {
+            return JSON.parse(localStorage.getItem("presencas")) || [];
+        }
 
+        function gravarPresencas(presencas) {
+            localStorage.setItem("presencas", JSON.stringify(presencas));
+        }
 
-
+        // ---------- Navegação entre telas ----------
 
         function mostrarCadastro() {
             document.getElementById("cadastro").style.display = "block";
+            document.getElementById("listaAlunos").style.display = "block"; // lista aparece junto
+            document.getElementById("areaPresencas").style.display = "none";
+
+            atualizarListaAlunos();
         }
 
-       
-function salvarAluno(event) {
-    event.preventDefault();
+        function mostrarAlunos() {
+            document.getElementById("listaAlunos").style.display = "block";
+            document.getElementById("cadastro").style.display = "none";
+            document.getElementById("areaPresencas").style.display = "none";
 
-    let nome = document.getElementById("nome").value;
-    let matricula = document.getElementById("matricula").value;
-    let turma = document.getElementById("turma").value;
+            atualizarListaAlunos();
+        }
 
-    let alunos = JSON.parse(localStorage.getItem("alunos")) || [];
+        function mostrarPresencas() {
+            document.getElementById("areaPresencas").style.display = "block";
+            document.getElementById("listaAlunos").style.display = "none";
+            document.getElementById("cadastro").style.display = "none";
 
-    let existe = alunos.some(aluno => aluno.matricula === matricula);
+            mostrarListaPresencas();
+        }
 
-    if (existe) {
-        document.getElementById("mensagem").innerText =
-            "Essa matrícula já está cadastrada!";
-        return;
-    }
+        // ---------- Alunos ----------
 
-    alunos.push({
-        nome: nome,
-        matricula: matricula,
-        turma: turma
-    });
+        function salvarAluno(event) {
+            event.preventDefault();
 
-    localStorage.setItem("alunos", JSON.stringify(alunos));
+            let nome = document.getElementById("nome").value.trim();
+            let matricula = document.getElementById("matricula").value.trim();
+            let turma = document.getElementById("turma").value.trim();
 
-    document.getElementById("mensagem").innerText =
-        "Aluno " + nome + " salvo com sucesso!";
+            let alunos = lerAlunos();
 
-    event.target.reset();
-}
-
-
-
-function mostrarAlunos() {
-    let alunos = JSON.parse(localStorage.getItem("alunos")) || [];
-
-    let lista = document.getElementById("listaAlunos");
-    let conteudo = document.getElementById("alunos");
-
-    lista.style.display = "block";
-    conteudo.innerHTML = "";
-
-    if (alunos.length === 0) {
-        conteudo.innerHTML = "<li>Nenhum aluno cadastrado.</li>";
-        return;
-    }
-
-    alunos.forEach(function(aluno) {
-        let item = document.createElement("li");
-
-        let informacoes = document.createElement("p");
-        informacoes.textContent =
-            "Nome: " + aluno.nome +
-            " | Matrícula: " + aluno.matricula +
-            " | Turma: " + aluno.turma;
-
-        let botao = document.createElement("button");
-        botao.textContent = "Gerar QR Code";
-
-        let areaQR = document.createElement("div");
-
-        botao.onclick = function() {
-            areaQR.innerHTML = "";
-
-            if (typeof QRCode === "undefined") {
-                areaQR.textContent = "Biblioteca QR Code não carregada.";
+            if (alunos.some(aluno => aluno.matricula === matricula)) {
+                document.getElementById("mensagem").innerText =
+                    "Essa matrícula já está cadastrada!";
                 return;
             }
 
-            new QRCode(areaQR, {
-                text: "PRESENCA:" + aluno.matricula,
-                width: 150,
-                height: 150
+            alunos.push({ nome: nome, matricula: matricula, turma: turma });
+            gravarAlunos(alunos);
+
+            document.getElementById("mensagem").innerText =
+                "Aluno " + nome + " salvo com sucesso!";
+
+            event.target.reset();
+
+            atualizarListaAlunos(); // a tabela cresce a cada aluno salvo
+        }
+
+        function atualizarListaAlunos() {
+            let alunos = lerAlunos();
+            let conteudo = document.getElementById("alunos");
+
+            conteudo.innerHTML = "";
+
+            if (alunos.length === 0) {
+                let linha = document.createElement("tr");
+                let celula = document.createElement("td");
+                celula.colSpan = 4;
+                celula.textContent = "Nenhum aluno cadastrado.";
+                linha.appendChild(celula);
+                conteudo.appendChild(linha);
+                return;
+            }
+
+            alunos.forEach(function (aluno) {
+                let linha = document.createElement("tr");
+
+                [aluno.nome, aluno.matricula, aluno.turma].forEach(function (valor) {
+                    let celula = document.createElement("td");
+                    celula.textContent = valor;
+                    linha.appendChild(celula);
+                });
+
+                let colunaQR = document.createElement("td");
+                let botao = document.createElement("button");
+                botao.textContent = "Gerar QR Code";
+                let areaQR = document.createElement("div");
+
+                botao.onclick = function () {
+                    areaQR.innerHTML = "";
+                    if (typeof QRCode === "undefined") {
+                        areaQR.textContent = "Biblioteca QR Code não carregada.";
+                        return;
+                    }
+                    new QRCode(areaQR, {
+                        text: "PRESENCA:" + aluno.matricula,
+                        width: 150,
+                        height: 150
+                    });
+                };
+
+                colunaQR.appendChild(botao);
+                colunaQR.appendChild(areaQR);
+                linha.appendChild(colunaQR);
+
+                conteudo.appendChild(linha);
             });
-        };
+        }
 
-        item.appendChild(informacoes);
-        item.appendChild(botao);
-        item.appendChild(areaQR);
+        // ---------- Presenças ----------
 
-        conteudo.appendChild(item);
-    });
-}
+        function registrarPresenca() {
+            let matricula = document.getElementById("matriculaPresenca").value.trim();
+            let mensagem = document.getElementById("mensagemPresenca");
 
+            if (matricula === "") {
+                mensagem.textContent = "Digite a matrícula do aluno.";
+                return;
+            }
 
+            let aluno = lerAlunos().find(a => a.matricula === matricula);
+
+            if (!aluno) {
+                mensagem.textContent = "Aluno não encontrado.";
+                return;
+            }
+
+            let presencas = lerPresencas();
+            let agora = new Date();
+            let hoje = agora.toLocaleDateString("pt-BR");
+
+            let jaRegistrou = presencas.some(
+                p => p.matricula === aluno.matricula && p.data === hoje
+            );
+
+            if (jaRegistrou) {
+                mensagem.textContent = aluno.nome + " já teve presença registrada hoje.";
+                return;
+            }
+
+            presencas.push({
+                nome: aluno.nome,
+                matricula: aluno.matricula,
+                turma: aluno.turma,
+                data: hoje,
+                horario: agora.toLocaleTimeString("pt-BR")
+            });
+
+            gravarPresencas(presencas);
+
+            mensagem.textContent = "Presença registrada para " + aluno.nome + "!";
+            document.getElementById("matriculaPresenca").value = "";
+
+            mostrarListaPresencas();
+        }
+
+        function mostrarListaPresencas() {
+            let presencas = lerPresencas();
+            let lista = document.getElementById("listaPresencas");
+
+            lista.innerHTML = "";
+
+            presencas.forEach(function (presenca) {
+                let linha = document.createElement("tr");
+
+                [presenca.nome, presenca.matricula, presenca.turma, presenca.data, presenca.horario]
+                    .forEach(function (valor) {
+                        let celula = document.createElement("td");
+                        celula.textContent = valor;
+                        linha.appendChild(celula);
+                    });
+
+                lista.appendChild(linha);
+            });
+        }
     </script>
 
 </body>
 
-
 </html>
+
