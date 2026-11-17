@@ -28,6 +28,15 @@
             margin: 10px;
         }
 
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #botaoSair {
+            background-color: #6b7280;
+        }
+
         form label,
         form input {
             display: block;
@@ -44,6 +53,10 @@
             border-collapse: collapse;
             background-color: #ffffff;
         }
+
+        .erro {
+            color: #b91c1c;
+        }
     </style>
 </head>
 
@@ -51,176 +64,279 @@
 
     <h1>Sistema de Presença Escolar</h1>
 
-    <p>Bem-vindo ao sistema de controle de presença.</p>
+    <!-- ================= TELA DE CARREGAMENTO ================= -->
+    <p id="carregando">Carregando...</p>
 
-    <button onclick="mostrarCadastro()">Cadastrar Aluno</button>
-    <button onclick="mostrarAlunos()">Alunos Cadastrados</button>
-    <button onclick="mostrarPresencas()">Registrar Presenças</button>
+    <!-- ================= TELA DE LOGIN ================= -->
+    <div id="telaLogin" style="display: none;">
+        <h2>Entrar</h2>
+        <form id="formLogin">
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" required autocomplete="username">
 
-    <div id="cadastro" style="display: none;">
-        <h2>Cadastrar Aluno</h2>
-        <form onsubmit="salvarAluno(event)">
-            <label for="nome">Nome do aluno:</label>
-            <input type="text" id="nome" required>
+            <label for="senha">Senha:</label>
+            <input type="password" id="senha" required autocomplete="current-password">
 
-            <label for="matricula">Matrícula:</label>
-            <input type="text" id="matricula" required>
-
-            <label for="turma">Turma:</label>
-            <input type="text" id="turma" required>
-
-            <button type="submit">Salvar Aluno</button>
+            <button type="submit">Entrar</button>
         </form>
-        <p id="mensagem"></p>
+        <p id="mensagemLogin" class="erro"></p>
     </div>
 
-    <div id="listaAlunos" style="display: none;">
-        <h2>Alunos Cadastrados</h2>
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Nº da matrícula</th>
-                    <th>Turma</th>
-                    <th>QR Code</th>
-                </tr>
-            </thead>
-            <tbody id="alunos"></tbody>
-        </table>
-    </div>
+    <!-- ================= SISTEMA (só aparece depois do login) ================= -->
+    <div id="sistema" style="display: none;">
 
-    <div id="areaPresencas" style="display: none;">
-        <h2>Registro de Presença</h2>
+        <p>Bem-vindo ao sistema de controle de presença.</p>
+        <p><small id="usuarioLogado"></small></p>
 
-        <label for="matriculaPresenca">Número da matrícula:</label>
-        <input type="text" id="matriculaPresenca" placeholder="Digite a matrícula do aluno">
+        <button id="botaoCadastro">Cadastrar Aluno</button>
+        <button id="botaoAlunos">Alunos Cadastrados</button>
+        <button id="botaoPresencas">Registrar Presenças</button>
+        <button id="botaoSair">Sair</button>
 
-        <button onclick="registrarPresenca()">Confirmar Presença</button>
+        <div id="cadastro" style="display: none;">
+            <h2>Cadastrar Aluno</h2>
+            <form id="formAluno">
+                <label for="nome">Nome do aluno:</label>
+                <input type="text" id="nome" required>
 
-        <p id="mensagemPresenca"></p>
+                <label for="matricula">Matrícula:</label>
+                <input type="text" id="matricula" required>
 
-        <h3>Presenças Registradas</h3>
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Matrícula</th>
-                    <th>Turma</th>
-                    <th>Data</th>
-                    <th>Horário</th>
-                </tr>
-            </thead>
-            <tbody id="listaPresencas"></tbody>
-        </table>
+                <label for="turma">Turma:</label>
+                <input type="text" id="turma" required>
+
+                <button type="submit">Salvar Aluno</button>
+            </form>
+            <p id="mensagem"></p>
+        </div>
+
+        <div id="listaAlunos" style="display: none;">
+            <h2>Alunos Cadastrados</h2>
+            <table border="1" cellpadding="10">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Nº da matrícula</th>
+                        <th>Turma</th>
+                        <th>QR Code</th>
+                    </tr>
+                </thead>
+                <tbody id="alunos"></tbody>
+            </table>
+        </div>
+
+        <div id="areaPresencas" style="display: none;">
+            <h2>Registro de Presença</h2>
+
+            <label for="matriculaPresenca">Número da matrícula:</label>
+            <input type="text" id="matriculaPresenca" placeholder="Digite a matrícula do aluno">
+
+            <button id="botaoConfirmarPresenca">Confirmar Presença</button>
+
+            <p id="mensagemPresenca"></p>
+
+            <h3>Presenças Registradas</h3>
+            <table border="1" cellpadding="10">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Matrícula</th>
+                        <th>Turma</th>
+                        <th>Data</th>
+                        <th>Horário</th>
+                    </tr>
+                </thead>
+                <tbody id="listaPresencas"></tbody>
+            </table>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script>
-        // ---------- Funções que leem/gravam os dados ----------
-        // Hoje os dados ficam no localStorage (no navegador).
-        // Se um dia trocar para um banco de dados, só estas 4 funções mudam.
 
-        function lerAlunos() {
-            return JSON.parse(localStorage.getItem("alunos")) || [];
-        }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            doc,
+            getDoc,
+            getDocs,
+            setDoc,
+            query,
+            orderBy,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
 
-        function gravarAlunos(alunos) {
-            localStorage.setItem("alunos", JSON.stringify(alunos));
-        }
+        // ---------- Configuração do seu projeto Firebase ----------
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8•••••••••••••••••••••••••••••••",
+            authDomain: "presen-1ca2d.firebaseapp.com",
+            projectId: "presen-1ca2d",
+            storageBucket: "presen-1ca2d.firebasestorage.app",
+            messagingSenderId: "491562375842",
+            appId: "1:491562375842:web:7f198d9d94420b1f8d55fb"
+        };
 
-        function lerPresencas() {
-            return JSON.parse(localStorage.getItem("presencas")) || [];
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        function gravarPresencas(presencas) {
-            localStorage.setItem("presencas", JSON.stringify(presencas));
-        }
+        const $ = (id) => document.getElementById(id);
 
-        // ---------- Navegação entre telas ----------
+        // ================= LOGIN =================
 
-        function mostrarCadastro() {
-            document.getElementById("cadastro").style.display = "block";
-            document.getElementById("listaAlunos").style.display = "block"; // lista aparece junto
-            document.getElementById("areaPresencas").style.display = "none";
+        onAuthStateChanged(auth, (usuario) => {
+            $("carregando").style.display = "none";
 
-            atualizarListaAlunos();
-        }
+            if (usuario) {
+                $("telaLogin").style.display = "none";
+                $("sistema").style.display = "block";
+                $("usuarioLogado").textContent = "Conectado como " + usuario.email;
+            } else {
+                $("sistema").style.display = "none";
+                $("telaLogin").style.display = "block";
+            }
+        });
 
-        function mostrarAlunos() {
-            document.getElementById("listaAlunos").style.display = "block";
-            document.getElementById("cadastro").style.display = "none";
-            document.getElementById("areaPresencas").style.display = "none";
-
-            atualizarListaAlunos();
-        }
-
-        function mostrarPresencas() {
-            document.getElementById("areaPresencas").style.display = "block";
-            document.getElementById("listaAlunos").style.display = "none";
-            document.getElementById("cadastro").style.display = "none";
-
-            mostrarListaPresencas();
-        }
-
-        // ---------- Alunos ----------
-
-        function salvarAluno(event) {
+        $("formLogin").addEventListener("submit", async (event) => {
             event.preventDefault();
+            const botao = event.target.querySelector("button");
+            botao.disabled = true;
+            $("mensagemLogin").textContent = "";
 
-            let nome = document.getElementById("nome").value.trim();
-            let matricula = document.getElementById("matricula").value.trim();
-            let turma = document.getElementById("turma").value.trim();
+            try {
+                await signInWithEmailAndPassword(auth, $("email").value.trim(), $("senha").value);
+                $("senha").value = "";
+            } catch (erro) {
+                $("mensagemLogin").textContent = "E-mail ou senha incorretos.";
+            } finally {
+                botao.disabled = false;
+            }
+        });
 
-            let alunos = lerAlunos();
+        $("botaoSair").addEventListener("click", () => signOut(auth));
 
-            if (alunos.some(aluno => aluno.matricula === matricula)) {
-                document.getElementById("mensagem").innerText =
-                    "Essa matrícula já está cadastrada!";
+        // ================= NAVEGAÇÃO =================
+
+        function mostrarTela(cadastro, lista, presencas) {
+            $("cadastro").style.display = cadastro ? "block" : "none";
+            $("listaAlunos").style.display = lista ? "block" : "none";
+            $("areaPresencas").style.display = presencas ? "block" : "none";
+        }
+
+        $("botaoCadastro").addEventListener("click", () => {
+            mostrarTela(true, true, false); // lista aparece junto com o cadastro
+            atualizarListaAlunos();
+        });
+
+        $("botaoAlunos").addEventListener("click", () => {
+            mostrarTela(false, true, false);
+            atualizarListaAlunos();
+        });
+
+        $("botaoPresencas").addEventListener("click", () => {
+            mostrarTela(false, false, true);
+            mostrarListaPresencas();
+        });
+
+        function mensagemDeErro(erro) {
+            if (erro && erro.code === "permission-denied") {
+                return "Sem permissão. Faça login novamente.";
+            }
+            return "Erro ao acessar o banco de dados. Verifique sua internet.";
+        }
+
+        // ================= ALUNOS =================
+        // Cada aluno fica salvo em "alunos/<matrícula>", então
+        // não tem como existir duas vezes a mesma matrícula.
+
+        $("formAluno").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const botao = event.target.querySelector("button");
+            const mensagem = $("mensagem");
+
+            const nome = $("nome").value.trim();
+            const matricula = $("matricula").value.trim();
+            const turma = $("turma").value.trim();
+
+            if (matricula.includes("/")) {
+                mensagem.textContent = "A matrícula não pode ter o caractere \"/\".";
                 return;
             }
 
-            alunos.push({ nome: nome, matricula: matricula, turma: turma });
-            gravarAlunos(alunos);
+            botao.disabled = true;
+            mensagem.textContent = "Salvando...";
 
-            document.getElementById("mensagem").innerText =
-                "Aluno " + nome + " salvo com sucesso!";
+            try {
+                const ref = doc(db, "alunos", matricula);
+                const existente = await getDoc(ref);
 
-            event.target.reset();
+                if (existente.exists()) {
+                    mensagem.textContent = "Essa matrícula já está cadastrada!";
+                    return;
+                }
 
-            atualizarListaAlunos(); // a tabela cresce a cada aluno salvo
-        }
+                await setDoc(ref, {
+                    nome: nome,
+                    matricula: matricula,
+                    turma: turma,
+                    criadoEm: serverTimestamp()
+                });
 
-        function atualizarListaAlunos() {
-            let alunos = lerAlunos();
-            let conteudo = document.getElementById("alunos");
+                mensagem.textContent = "Aluno " + nome + " salvo com sucesso!";
+                event.target.reset();
+                atualizarListaAlunos(); // a tabela cresce a cada aluno salvo
+            } catch (erro) {
+                console.error(erro);
+                mensagem.textContent = mensagemDeErro(erro);
+            } finally {
+                botao.disabled = false;
+            }
+        });
+
+        async function atualizarListaAlunos() {
+            const conteudo = $("alunos");
+            conteudo.innerHTML = "<tr><td colspan='4'>Carregando...</td></tr>";
+
+            let alunos;
+            try {
+                const resultado = await getDocs(query(collection(db, "alunos"), orderBy("nome")));
+                alunos = resultado.docs.map((d) => d.data());
+            } catch (erro) {
+                console.error(erro);
+                conteudo.innerHTML = "";
+                adicionarLinhaUnica(conteudo, mensagemDeErro(erro), 4);
+                return;
+            }
 
             conteudo.innerHTML = "";
 
             if (alunos.length === 0) {
-                let linha = document.createElement("tr");
-                let celula = document.createElement("td");
-                celula.colSpan = 4;
-                celula.textContent = "Nenhum aluno cadastrado.";
-                linha.appendChild(celula);
-                conteudo.appendChild(linha);
+                adicionarLinhaUnica(conteudo, "Nenhum aluno cadastrado.", 4);
                 return;
             }
 
-            alunos.forEach(function (aluno) {
-                let linha = document.createElement("tr");
+            alunos.forEach((aluno) => {
+                const linha = document.createElement("tr");
 
-                [aluno.nome, aluno.matricula, aluno.turma].forEach(function (valor) {
-                    let celula = document.createElement("td");
+                [aluno.nome, aluno.matricula, aluno.turma].forEach((valor) => {
+                    const celula = document.createElement("td");
                     celula.textContent = valor;
                     linha.appendChild(celula);
                 });
 
-                let colunaQR = document.createElement("td");
-                let botao = document.createElement("button");
+                const colunaQR = document.createElement("td");
+                const botao = document.createElement("button");
                 botao.textContent = "Gerar QR Code";
-                let areaQR = document.createElement("div");
+                const areaQR = document.createElement("div");
 
-                botao.onclick = function () {
+                botao.addEventListener("click", () => {
                     areaQR.innerHTML = "";
                     if (typeof QRCode === "undefined") {
                         areaQR.textContent = "Biblioteca QR Code não carregada.";
@@ -231,7 +347,7 @@
                         width: 150,
                         height: 150
                     });
-                };
+                });
 
                 colunaQR.appendChild(botao);
                 colunaQR.appendChild(areaQR);
@@ -241,65 +357,115 @@
             });
         }
 
-        // ---------- Presenças ----------
+        function adicionarLinhaUnica(tbody, texto, colunas) {
+            const linha = document.createElement("tr");
+            const celula = document.createElement("td");
+            celula.colSpan = colunas;
+            celula.textContent = texto;
+            linha.appendChild(celula);
+            tbody.appendChild(linha);
+        }
 
-        function registrarPresenca() {
-            let matricula = document.getElementById("matriculaPresenca").value.trim();
-            let mensagem = document.getElementById("mensagemPresenca");
+        // ================= PRESENÇAS =================
+        // Cada presença fica em "presencas/<matrícula>_<AAAA-MM-DD>",
+        // então o mesmo aluno só tem uma presença por dia.
+
+        function dataISO(data) {
+            const ano = data.getFullYear();
+            const mes = String(data.getMonth() + 1).padStart(2, "0");
+            const dia = String(data.getDate()).padStart(2, "0");
+            return ano + "-" + mes + "-" + dia;
+        }
+
+        $("botaoConfirmarPresenca").addEventListener("click", registrarPresenca);
+        $("matriculaPresenca").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") registrarPresenca();
+        });
+
+        async function registrarPresenca() {
+            const matricula = $("matriculaPresenca").value.trim();
+            const mensagem = $("mensagemPresenca");
+            const botao = $("botaoConfirmarPresenca");
 
             if (matricula === "") {
                 mensagem.textContent = "Digite a matrícula do aluno.";
                 return;
             }
-
-            let aluno = lerAlunos().find(a => a.matricula === matricula);
-
-            if (!aluno) {
+            if (matricula.includes("/")) {
                 mensagem.textContent = "Aluno não encontrado.";
                 return;
             }
 
-            let presencas = lerPresencas();
-            let agora = new Date();
-            let hoje = agora.toLocaleDateString("pt-BR");
+            botao.disabled = true;
+            mensagem.textContent = "Registrando...";
 
-            let jaRegistrou = presencas.some(
-                p => p.matricula === aluno.matricula && p.data === hoje
-            );
+            try {
+                const alunoDoc = await getDoc(doc(db, "alunos", matricula));
 
-            if (jaRegistrou) {
-                mensagem.textContent = aluno.nome + " já teve presença registrada hoje.";
+                if (!alunoDoc.exists()) {
+                    mensagem.textContent = "Aluno não encontrado.";
+                    return;
+                }
+
+                const aluno = alunoDoc.data();
+                const agora = new Date();
+                const refPresenca = doc(db, "presencas", matricula + "_" + dataISO(agora));
+
+                if ((await getDoc(refPresenca)).exists()) {
+                    mensagem.textContent = aluno.nome + " já teve presença registrada hoje.";
+                    return;
+                }
+
+                await setDoc(refPresenca, {
+                    nome: aluno.nome,
+                    matricula: aluno.matricula,
+                    turma: aluno.turma,
+                    data: agora.toLocaleDateString("pt-BR"),
+                    horario: agora.toLocaleTimeString("pt-BR"),
+                    registradoEm: serverTimestamp()
+                });
+
+                mensagem.textContent = "Presença registrada para " + aluno.nome + "!";
+                $("matriculaPresenca").value = "";
+                mostrarListaPresencas();
+            } catch (erro) {
+                console.error(erro);
+                mensagem.textContent = mensagemDeErro(erro);
+            } finally {
+                botao.disabled = false;
+            }
+        }
+
+        async function mostrarListaPresencas() {
+            const lista = $("listaPresencas");
+            lista.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
+
+            let presencas;
+            try {
+                const resultado = await getDocs(
+                    query(collection(db, "presencas"), orderBy("registradoEm", "desc"))
+                );
+                presencas = resultado.docs.map((d) => d.data());
+            } catch (erro) {
+                console.error(erro);
+                lista.innerHTML = "";
+                adicionarLinhaUnica(lista, mensagemDeErro(erro), 5);
                 return;
             }
 
-            presencas.push({
-                nome: aluno.nome,
-                matricula: aluno.matricula,
-                turma: aluno.turma,
-                data: hoje,
-                horario: agora.toLocaleTimeString("pt-BR")
-            });
-
-            gravarPresencas(presencas);
-
-            mensagem.textContent = "Presença registrada para " + aluno.nome + "!";
-            document.getElementById("matriculaPresenca").value = "";
-
-            mostrarListaPresencas();
-        }
-
-        function mostrarListaPresencas() {
-            let presencas = lerPresencas();
-            let lista = document.getElementById("listaPresencas");
-
             lista.innerHTML = "";
 
-            presencas.forEach(function (presenca) {
-                let linha = document.createElement("tr");
+            if (presencas.length === 0) {
+                adicionarLinhaUnica(lista, "Nenhuma presença registrada.", 5);
+                return;
+            }
+
+            presencas.forEach((presenca) => {
+                const linha = document.createElement("tr");
 
                 [presenca.nome, presenca.matricula, presenca.turma, presenca.data, presenca.horario]
-                    .forEach(function (valor) {
-                        let celula = document.createElement("td");
+                    .forEach((valor) => {
+                        const celula = document.createElement("td");
                         celula.textContent = valor;
                         linha.appendChild(celula);
                     });
@@ -312,4 +478,3 @@
 </body>
 
 </html>
-
